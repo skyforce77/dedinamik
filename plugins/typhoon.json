@@ -1,0 +1,18 @@
+{
+  "name": "typhoonlimbo",
+  "type": "child",
+  "waitTime": 2,
+  "await": [
+    {
+      "type": "socket",
+      "connection": "tcp",
+      "from": ":25566",
+      "to": "localhost:25565"
+    }
+  ],
+  "config": {
+    "command": [
+      "/opt/TyphoonLimbo/TyphoonLimbo"
+    ]
+  }
+}
