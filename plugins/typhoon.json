@@ -13,6 +13,7 @@
   "config": {
     "command": [
       "/opt/TyphoonLimbo/TyphoonLimbo"
-    ]
+    ],
+    "freeze": false
   }
 }

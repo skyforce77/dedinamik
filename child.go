@@ -6,16 +6,19 @@ import (
 	"log"
 	"os"
 	"path"
+	"syscall"
 )
 
 type ChildPlugin struct {
 	Name    string
 	Command []string
+	Freeze  bool `json:"freeze"`
 	Child   *os.Process
 }
 
 type ChildPluginFile struct {
 	Command []string `json:"command"`
+	Freeze  bool     `json:"freeze"`
 }
 
 func (plugin *ChildPlugin) GetName() string {
@@ -31,10 +34,10 @@ func (plugin *ChildPlugin) Stop() error {
 	return stopChild(plugin)
 }
 func (plugin *ChildPlugin) Sleep() error {
-	return nil
+	return plugin.Child.Signal(syscall.SIGSTOP)
 }
 func (plugin *ChildPlugin) WakeUp() error {
-	return nil
+	return plugin.Child.Signal(syscall.SIGCONT)
 }
 
 func createChildPlugin(file *PluginFile) ServicePlugin {
@@ -48,6 +51,7 @@ func createChildPlugin(file *PluginFile) ServicePlugin {
 	return &ChildPlugin{
 		file.Name,
 		command.Command,
+		command.Freeze,
 		nil,
 	}
 }
