@@ -124,6 +124,7 @@ var (
 
 func registerPluginTypes() {
 	pluginTypes["child"] = &PluginType{createChildPlugin}
+	pluginTypes["systemd"] = &PluginType{createSystemDPlugin}
 }
 
 func loadPluginFromFile(path string) (*MonitoredPlugin, error) {

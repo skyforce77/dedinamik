@@ -1,6 +1,6 @@
 {
   "name": "typhoonlimbo",
-  "type": "child",
+  "type": "systemd",
   "waitTime": 2,
   "await": [
     {
@@ -11,9 +11,7 @@
     }
   ],
   "config": {
-    "command": [
-      "/opt/TyphoonLimbo/TyphoonLimbo"
-    ],
-    "freeze": false
+    "service": "typhoonlimbo.service",
+    "mode": "replace"
   }
 }

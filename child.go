@@ -12,12 +12,14 @@ import (
 type ChildPlugin struct {
 	Name    string
 	Command []string
-	Freeze  bool `json:"freeze"`
+	Home	string
+	Freeze  bool
 	Child   *os.Process
 }
 
 type ChildPluginFile struct {
 	Command []string `json:"command"`
+	Home	string	`json:"home"`
 	Freeze  bool     `json:"freeze"`
 }
 
@@ -51,6 +53,7 @@ func createChildPlugin(file *PluginFile) ServicePlugin {
 	return &ChildPlugin{
 		file.Name,
 		command.Command,
+		command.Home,
 		command.Freeze,
 		nil,
 	}
@@ -69,9 +72,9 @@ func startChild(plugin *ChildPlugin) error {
 		plugin.Command[0],
 		args,
 		&os.ProcAttr{
-			path.Dir(plugin.Command[0]),
+			plugin.Home,
 			os.Environ(),
-			[]*os.File{stdin, stdout, stderr},
+			[]*os.File{stdin, stderr, stdout},
 			nil,
 		},
 	)
@@ -84,9 +87,10 @@ func startChild(plugin *ChildPlugin) error {
 		if err != nil {
 			log.Println(err)
 		}
-		log.Println("stopped")
 		plugin.Child = nil
 	}()
+
+	log.Println("started", plugin.Name)
 	return nil
 }
 
@@ -96,5 +100,7 @@ func stopChild(plugin *ChildPlugin) error {
 			log.Fatal("failed to kill process: ", err)
 		}
 	}
+
+	log.Println("stopped", plugin.Name)
 	return nil
 }
