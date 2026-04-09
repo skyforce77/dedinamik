@@ -1,11 +1,14 @@
-package main
+package plugin
 
 import (
 	"encoding/json"
-	"io/ioutil"
+	"fmt"
 	"log"
+	"os"
 	"sync"
 	"time"
+
+	"github.com/skyforce77/dedinamik/internal/activity"
 )
 
 type PluginState uint8
@@ -22,9 +25,9 @@ type MonitoredPlugin struct {
 	LastActivity    time.Time
 	TimeBeforeSleep time.Duration
 	Peers           int
-	AwaitList       []AwaitActivity
+	AwaitList       []activity.AwaitActivity
 
-	Mutex *sync.RWMutex
+	Mutex sync.RWMutex
 }
 
 func (plugin *MonitoredPlugin) GetPeers() int {
@@ -33,12 +36,14 @@ func (plugin *MonitoredPlugin) GetPeers() int {
 	plugin.Mutex.RUnlock()
 	return peers
 }
+
 func (plugin *MonitoredPlugin) GetState() PluginState {
 	plugin.Mutex.RLock()
 	state := plugin.State
 	plugin.Mutex.RUnlock()
 	return state
 }
+
 func (plugin *MonitoredPlugin) PeerConnected() {
 	if plugin.GetState() == PluginStopped {
 		plugin.Start()
@@ -48,12 +53,14 @@ func (plugin *MonitoredPlugin) PeerConnected() {
 	plugin.LastActivity = time.Now()
 	plugin.Mutex.Unlock()
 }
+
 func (plugin *MonitoredPlugin) PeerDisconnected() {
 	plugin.Mutex.Lock()
 	plugin.Peers -= 1
 	plugin.LastActivity = time.Now()
 	plugin.Mutex.Unlock()
 }
+
 func (plugin *MonitoredPlugin) WantToSleep() bool {
 	plugin.Mutex.RLock()
 	hasToStop := false
@@ -63,37 +70,76 @@ func (plugin *MonitoredPlugin) WantToSleep() bool {
 	plugin.Mutex.RUnlock()
 	return hasToStop
 }
+
 func (plugin *MonitoredPlugin) Start() {
 	plugin.Mutex.Lock()
 	err := plugin.Plugin.Start()
 	if err == nil {
 		plugin.State = PluginRunning
+	} else {
+		log.Printf("failed to %s plugin: %v", "start", err)
 	}
 	plugin.Mutex.Unlock()
 }
+
 func (plugin *MonitoredPlugin) Stop() {
 	plugin.Mutex.Lock()
 	err := plugin.Plugin.Stop()
 	if err == nil {
 		plugin.State = PluginStopped
+	} else {
+		log.Printf("failed to %s plugin: %v", "stop", err)
 	}
 	plugin.Mutex.Unlock()
 }
+
 func (plugin *MonitoredPlugin) Sleep() {
 	plugin.Mutex.Lock()
 	err := plugin.Plugin.Sleep()
 	if err == nil {
 		plugin.State = PluginSleeping
+	} else {
+		log.Printf("failed to %s plugin: %v", "sleep", err)
 	}
 	plugin.Mutex.Unlock()
 }
+
 func (plugin *MonitoredPlugin) WakeUp() {
 	plugin.Mutex.Lock()
 	err := plugin.Plugin.WakeUp()
 	if err == nil {
 		plugin.State = PluginRunning
+	} else {
+		log.Printf("failed to %s plugin: %v", "wakeup", err)
 	}
 	plugin.Mutex.Unlock()
+}
+
+// GetAwaitList implements activity.PluginWithActivity.
+func (plugin *MonitoredPlugin) GetAwaitList() []activity.AwaitActivity {
+	return plugin.AwaitList
+}
+
+// IsRunning implements monitor.Monitorable.
+func (plugin *MonitoredPlugin) IsRunning() bool {
+	return plugin.GetState() == PluginRunning
+}
+
+// CanSleep implements monitor.Monitorable.
+func (plugin *MonitoredPlugin) CanSleep() bool {
+	return plugin.Plugin.GetCanSleep()
+}
+
+// GetStateName implements monitor.Monitorable.
+func (plugin *MonitoredPlugin) GetStateName() string {
+	switch plugin.GetState() {
+	case PluginRunning:
+		return "running"
+	case PluginSleeping:
+		return "sleeping"
+	default:
+		return "stopped"
+	}
 }
 
 type ServicePlugin interface {
@@ -118,20 +164,16 @@ type PluginType struct {
 	FromFile func(file *PluginFile) ServicePlugin
 }
 
-var (
-	pluginTypes = make(map[string]*PluginType)
-)
+var PluginTypes = make(map[string]*PluginType)
 
-func registerPluginTypes() {
-	pluginTypes["child"] = &PluginType{createChildPlugin}
-	pluginTypes["systemd"] = &PluginType{createSystemDPlugin}
+func RegisterPluginType(name string, pt *PluginType) {
+	PluginTypes[name] = pt
 }
 
-func loadPluginFromFile(path string) (*MonitoredPlugin, error) {
-	raw, err := ioutil.ReadFile(path)
+func LoadPluginFromFile(path string) (*MonitoredPlugin, error) {
+	raw, err := os.ReadFile(path)
 	if err != nil {
-		log.Fatal("Can't read file", path)
-		return nil, err
+		return nil, fmt.Errorf("can't read file %s: %w", path, err)
 	}
 
 	var pluginFile PluginFile
@@ -140,9 +182,9 @@ func loadPluginFromFile(path string) (*MonitoredPlugin, error) {
 		return nil, err
 	}
 
-	awaitList := make([]AwaitActivity, len(pluginFile.AwaitList))
+	awaitList := make([]activity.AwaitActivity, len(pluginFile.AwaitList))
 	for i := range awaitList {
-		f := &AwaitActivityFile{}
+		f := &activity.AwaitActivityFile{}
 		err = json.Unmarshal(pluginFile.AwaitList[i], f)
 		if err != nil {
 			return nil, err
@@ -151,16 +193,13 @@ func loadPluginFromFile(path string) (*MonitoredPlugin, error) {
 	}
 
 	monitored := MonitoredPlugin{
-		nil,
-		PluginStopped,
-		time.Now(),
-		time.Duration(pluginFile.TimeBeforeSleep) * time.Minute,
-		0,
-		awaitList,
-		new(sync.RWMutex),
+		State:           PluginStopped,
+		LastActivity:    time.Now(),
+		TimeBeforeSleep: time.Duration(pluginFile.TimeBeforeSleep) * time.Minute,
+		AwaitList:       awaitList,
 	}
 
-	typ := pluginTypes[pluginFile.Type]
+	typ := PluginTypes[pluginFile.Type]
 	if typ != nil {
 		monitored.Plugin = typ.FromFile(&pluginFile)
 	}

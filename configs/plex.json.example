@@ -1,0 +1,21 @@
+{
+  "name": "plex",
+  "type": "docker",
+  "waitTime": 30,
+  "await": [
+    {
+      "type": "socket",
+      "connection": "tcp",
+      "from": ":32400",
+      "to": "localhost:32401"
+    }
+  ],
+  "config": {
+    "image": "plexinc/pms-docker:latest",
+    "containerName": "plex",
+    "env": ["PLEX_CLAIM=claim-xxxx", "TZ=Pacific/Tahiti"],
+    "volumes": ["/srv/plex/config:/config", "/srv/media:/data"],
+    "network": "host",
+    "ports": ["32401:32400"]
+  }
+}

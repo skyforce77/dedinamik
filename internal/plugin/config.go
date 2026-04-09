@@ -1,4 +1,4 @@
-package main
+package plugin
 
 import (
 	"log"
@@ -7,12 +7,12 @@ import (
 	"strings"
 )
 
-func createPlugins() []*MonitoredPlugin {
+func CreatePlugins(configDir string) []*MonitoredPlugin {
 	plugins := make([]*MonitoredPlugin, 0)
 
-	err := filepath.Walk("plugins", func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(configDir, func(path string, info os.FileInfo, err error) error {
 		if err == nil && !info.IsDir() && strings.HasSuffix(path, ".json") {
-			plugin, err := loadPluginFromFile(path)
+			plugin, err := LoadPluginFromFile(path)
 			if err == nil {
 				plugins = append(plugins, plugin)
 			} else {

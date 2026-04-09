@@ -1,0 +1,16 @@
+{
+  "name": "mediastack",
+  "type": "compose",
+  "waitTime": 30,
+  "await": [
+    {
+      "type": "http",
+      "from": ":8080",
+      "to": "http://localhost:32400/web"
+    }
+  ],
+  "config": {
+    "composeFile": "/srv/media/docker-compose.yml",
+    "projectName": "mediastack"
+  }
+}
