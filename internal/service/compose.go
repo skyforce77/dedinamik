@@ -73,7 +73,7 @@ func (p *ComposePlugin) runCompose(args ...string) error {
 	}
 	baseArgs = append(baseArgs, args...)
 
-	cmd := exec.CommandContext(ctx, "docker", baseArgs...)
+	cmd := exec.CommandContext(ctx, "docker", baseArgs...) // #nosec G204 -- args are from trusted config, not user input
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, string(output))

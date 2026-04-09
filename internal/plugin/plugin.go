@@ -171,7 +171,7 @@ func RegisterPluginType(name string, pt *PluginType) {
 }
 
 func LoadPluginFromFile(path string) (*MonitoredPlugin, error) {
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path) // #nosec G304 -- path comes from trusted config directory walk
 	if err != nil {
 		return nil, fmt.Errorf("can't read file %s: %w", path, err)
 	}
