@@ -69,13 +69,13 @@ func startChild(p *ChildPlugin) error {
 	}
 	stdout, err := os.Create(fmt.Sprintf("/tmp/%s-stdout.log", p.Name))
 	if err != nil {
-		stdin.Close()
+		_ = stdin.Close()
 		return fmt.Errorf("failed to create stdout log for %s: %w", p.Name, err)
 	}
 	stderr, err := os.Create(fmt.Sprintf("/tmp/%s-stderr.log", p.Name))
 	if err != nil {
-		stdin.Close()
-		stdout.Close()
+		_ = stdin.Close()
+		_ = stdout.Close()
 		return fmt.Errorf("failed to create stderr log for %s: %w", p.Name, err)
 	}
 
@@ -93,15 +93,15 @@ func startChild(p *ChildPlugin) error {
 		},
 	)
 	if err != nil {
-		stdin.Close()
-		stdout.Close()
-		stderr.Close()
+		_ = stdin.Close()
+		_ = stdout.Close()
+		_ = stderr.Close()
 		return fmt.Errorf("failed to start %s: %w", p.Name, err)
 	}
 
-	stdin.Close()
-	stdout.Close()
-	stderr.Close()
+	_ = stdin.Close()
+	_ = stdout.Close()
+	_ = stderr.Close()
 
 	p.mu.Lock()
 	p.Child = process

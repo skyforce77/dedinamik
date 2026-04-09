@@ -130,7 +130,9 @@ func TestProxyConnections(t *testing.T) {
 	// Test client -> target direction.
 	msg1 := []byte("hello from client")
 	go func() {
-		clientLocal.Write(msg1)
+		if _, err := clientLocal.Write(msg1); err != nil {
+			t.Errorf("failed to write to client: %v", err)
+		}
 	}()
 	buf := make([]byte, 128)
 	n, err := targetLocal.Read(buf)
@@ -144,7 +146,9 @@ func TestProxyConnections(t *testing.T) {
 	// Test target -> client direction.
 	msg2 := []byte("hello from target")
 	go func() {
-		targetLocal.Write(msg2)
+		if _, err := targetLocal.Write(msg2); err != nil {
+			t.Errorf("failed to write to target: %v", err)
+		}
 	}()
 	n, err = clientLocal.Read(buf)
 	if err != nil {
@@ -155,8 +159,8 @@ func TestProxyConnections(t *testing.T) {
 	}
 
 	// Close one side to trigger cleanup.
-	clientLocal.Close()
-	targetLocal.Close()
+	_ = clientLocal.Close()
+	_ = targetLocal.Close()
 
 	// Give goroutines time to finish cleanup.
 	time.Sleep(100 * time.Millisecond)
@@ -200,7 +204,7 @@ func TestStartSocketListener_ContextCancel(t *testing.T) {
 		t.Fatalf("failed to find available port: %v", err)
 	}
 	addr := ln.Addr().String()
-	ln.Close()
+	_ = ln.Close()
 
 	act := &SocketAwaitActivity{
 		Connection: "tcp",

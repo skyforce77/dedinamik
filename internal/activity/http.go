@@ -49,7 +49,7 @@ func StartHTTPListener(ctx context.Context, tracker PeerTracker, act *HTTPAwaitA
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		server.Shutdown(shutdownCtx)
+		_ = server.Shutdown(shutdownCtx)
 	}()
 
 	log.Printf("started HTTP listener %s -> %s", act.From, act.To)

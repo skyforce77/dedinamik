@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -55,12 +56,12 @@ func CreateSystemDPlugin(file *plugin.PluginFile) plugin.ServicePlugin {
 }
 
 func startSystemD(p *SystemDPlugin) error {
-	conn, err := dbus.NewSystemConnection()
+	conn, err := dbus.NewSystemConnectionContext(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to connect to systemd: %w", err)
 	}
 	defer conn.Close()
-	_, err = conn.StartUnit(p.ServiceName, p.JobMode, nil)
+	_, err = conn.StartUnitContext(context.Background(), p.ServiceName, p.JobMode, nil)
 	if err != nil {
 		return fmt.Errorf("failed to start unit %s: %w", p.ServiceName, err)
 	}
@@ -69,12 +70,12 @@ func startSystemD(p *SystemDPlugin) error {
 }
 
 func stopSystemD(p *SystemDPlugin) error {
-	conn, err := dbus.NewSystemConnection()
+	conn, err := dbus.NewSystemConnectionContext(context.Background())
 	if err != nil {
 		return fmt.Errorf("failed to connect to systemd: %w", err)
 	}
 	defer conn.Close()
-	_, err = conn.StopUnit(p.ServiceName, p.JobMode, nil)
+	_, err = conn.StopUnitContext(context.Background(), p.ServiceName, p.JobMode, nil)
 	if err != nil {
 		return fmt.Errorf("failed to stop unit %s: %w", p.ServiceName, err)
 	}

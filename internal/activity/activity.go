@@ -74,13 +74,13 @@ func StartSocketListener(ctx context.Context, tracker PeerTracker, act *SocketAw
 		log.Printf("failed to start socket listener on %s: %v", act.From, err)
 		return
 	}
-	defer listener.Close()
+	defer func() { _ = listener.Close() }()
 
 	log.Println("started socket listener", act.From)
 
 	go func() {
 		<-ctx.Done()
-		listener.Close()
+		_ = listener.Close()
 	}()
 
 	for {
@@ -100,7 +100,7 @@ func StartSocketListener(ctx context.Context, tracker PeerTracker, act *SocketAw
 		toConn, err := dialWithTimeout(act.Connection, act.To, 30*time.Second)
 		if err != nil {
 			log.Printf("failed to connect to %s after timeout: %v", act.To, err)
-			conn.Close()
+			_ = conn.Close()
 			tracker.PeerDisconnected()
 			continue
 		}
@@ -131,16 +131,16 @@ func proxyConnections(tracker PeerTracker, client, target net.Conn) {
 	var once sync.Once
 	cleanup := func() {
 		tracker.PeerDisconnected()
-		client.Close()
-		target.Close()
+		_ = client.Close()
+		_ = target.Close()
 	}
 
 	go func() {
-		io.Copy(target, client)
+		_, _ = io.Copy(target, client)
 		once.Do(cleanup)
 	}()
 
-	io.Copy(client, target)
+	_, _ = io.Copy(client, target)
 	once.Do(cleanup)
 }
 

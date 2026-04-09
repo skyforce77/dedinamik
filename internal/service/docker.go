@@ -43,7 +43,7 @@ func (p *DockerPlugin) Start() error {
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}
-	defer cli.Close()
+	defer func() { _ = cli.Close() }()
 
 	// Pull image if not present
 	_, _, err = cli.ImageInspectWithRaw(ctx, p.Image)
@@ -53,8 +53,8 @@ func (p *DockerPlugin) Start() error {
 		if err != nil {
 			return fmt.Errorf("failed to pull image %s: %w", p.Image, err)
 		}
-		io.Copy(io.Discard, reader)
-		reader.Close()
+		_, _ = io.Copy(io.Discard, reader)
+		_ = reader.Close()
 	}
 
 	// Parse port bindings
@@ -108,7 +108,7 @@ func (p *DockerPlugin) Stop() error {
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}
-	defer cli.Close()
+	defer func() { _ = cli.Close() }()
 
 	timeout := 30
 	stopOpts := container.StopOptions{Timeout: &timeout}
@@ -133,7 +133,7 @@ func (p *DockerPlugin) Sleep() error {
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}
-	defer cli.Close()
+	defer func() { _ = cli.Close() }()
 
 	if err := cli.ContainerPause(ctx, p.ContainerID); err != nil {
 		return fmt.Errorf("failed to pause container %s: %w", p.ContainerName, err)
@@ -151,7 +151,7 @@ func (p *DockerPlugin) WakeUp() error {
 	if err != nil {
 		return fmt.Errorf("failed to create docker client: %w", err)
 	}
-	defer cli.Close()
+	defer func() { _ = cli.Close() }()
 
 	if err := cli.ContainerUnpause(ctx, p.ContainerID); err != nil {
 		return fmt.Errorf("failed to unpause container %s: %w", p.ContainerName, err)
