@@ -1,6 +1,6 @@
 module github.com/skyforce77/dedinamik
 
-go 1.25.0
+go 1.25.9
 
 require (
 	github.com/coreos/go-systemd/v22 v22.7.0

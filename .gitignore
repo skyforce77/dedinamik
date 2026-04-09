@@ -36,6 +36,7 @@ _testmain.go
 *.prof
 
 .idea/
-dedinamik
+/dedinamik
 CLAUDE.md
 plugins/CLAUDE.md
+docs/
